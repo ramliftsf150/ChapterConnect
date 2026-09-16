@@ -1,0 +1,22 @@
+# ChapterConnect
+
+ChapterConnect is a fraternity management application designed to help members
+stay informed about chapter events, announcements, membership, and organizational
+activities.
+
+## Version 1
+
+Version 1 will include:
+
+- Member authentication
+- Active brother roster
+- Event management
+- Role-based permissions
+- Officer announcement creation
+- EC/Admin announcement approval workflow
+
+## User Roles
+
+- Brother
+- Officer
+- EC/Admin
