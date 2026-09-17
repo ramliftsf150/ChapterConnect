@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.chapterconnect.app.exception.DuplicateResourceException;
+import com.chapterconnect.app.exception.ResourceNotFoundException;
 import com.chapterconnect.app.model.AccountStatus;
 import com.chapterconnect.app.model.Role;
 import com.chapterconnect.app.model.User;
@@ -58,4 +59,13 @@ public class UserService {
     public List<User> findAllUsers() {
         return userRepository.findAll();
     }
+
+    public User findByEmailOrThrow(String email) {
+    return userRepository.findByEmail(email)
+            .orElseThrow(() ->
+                    new ResourceNotFoundException(
+                            "User not found with email: " + email
+                    )
+            );
+}
 }

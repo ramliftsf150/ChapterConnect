@@ -30,26 +30,27 @@ public class AnnouncementService {
     }
 
     public Announcement createAnnouncement(
-            CreateAnnouncementRequest request) {
+        CreateAnnouncementRequest request,
+        String authenticatedEmail) {
 
-        User creator =
-                userService.findById(request.createdByUserId());
+    User creator =
+            userService.findByEmailOrThrow(authenticatedEmail);
 
-        if (creator.getRole() == Role.BROTHER) {
-            throw new IllegalArgumentException(
-                    "Brothers are not allowed to create announcements."
-            );
-        }
-
-        Announcement announcement = new Announcement(
-                request.title(),
-                request.message(),
-                creator,
-                AnnouncementStatus.DRAFT
+    if (creator.getRole() == Role.BROTHER) {
+        throw new IllegalArgumentException(
+                "Brothers are not allowed to create announcements."
         );
-
-        return announcementRepository.save(announcement);
     }
+
+    Announcement announcement = new Announcement(
+            request.title(),
+            request.message(),
+            creator,
+            AnnouncementStatus.DRAFT
+    );
+
+    return announcementRepository.save(announcement);
+}
 
     public Announcement findById(Long id) {
         return announcementRepository.findById(id)
@@ -72,123 +73,119 @@ public class AnnouncementService {
         );
     }
 
+   @Transactional
+public Announcement submitForApproval(
+        Long announcementId,
+        String authenticatedEmail) {
+
+    Announcement announcement = findById(announcementId);
+
+    User requestingUser =
+            userService.findByEmailOrThrow(authenticatedEmail);
+
+    boolean isAdmin =
+            requestingUser.getRole() == Role.ADMIN;
+
+    boolean isCreator =
+            announcement.getCreatedBy()
+                    .getId()
+                    .equals(requestingUser.getId());
+
+    if (!isAdmin && !isCreator) {
+        throw new IllegalArgumentException(
+                "You may only submit your own announcement."
+        );
+    }
+
+    if (announcement.getStatus() != AnnouncementStatus.DRAFT
+            && announcement.getStatus() != AnnouncementStatus.REJECTED) {
+
+        throw new IllegalArgumentException(
+                "Only draft or rejected announcements can be submitted."
+        );
+    }
+
+    announcement.setStatus(
+            AnnouncementStatus.PENDING_APPROVAL
+    );
+
+    return announcementRepository.save(announcement);
+}
+
     @Transactional
-    public Announcement submitForApproval(
-            Long announcementId,
-            Long requestingUserId) {
+public Announcement reviewAnnouncement(
+        Long announcementId,
+        ReviewAnnouncementRequest request,
+        String authenticatedEmail) {
 
-        Announcement announcement =
-                findById(announcementId);
+    Announcement announcement = findById(announcementId);
 
-        User requestingUser =
-                userService.findById(requestingUserId);
+    User reviewer =
+            userService.findByEmailOrThrow(authenticatedEmail);
 
-        boolean isAdmin =
-                requestingUser.getRole() == Role.ADMIN;
+    if (reviewer.getRole() != Role.ADMIN) {
+        throw new IllegalArgumentException(
+                "Only admins may review announcements."
+        );
+    }
 
-        boolean isCreator =
-                announcement.getCreatedBy()
-                        .getId()
-                        .equals(requestingUser.getId());
+    if (announcement.getStatus()
+            != AnnouncementStatus.PENDING_APPROVAL) {
 
-        if (!isAdmin && !isCreator) {
-            throw new IllegalArgumentException(
-                    "You may only submit your own announcement."
-            );
-        }
+        throw new IllegalArgumentException(
+                "Only pending announcements may be reviewed."
+        );
+    }
 
-        if (announcement.getStatus() != AnnouncementStatus.DRAFT
-                && announcement.getStatus() != AnnouncementStatus.REJECTED) {
+    announcement.setReviewedBy(reviewer);
+    announcement.setReviewedAt(LocalDateTime.now());
+    announcement.setReviewNote(request.reviewNote());
 
-            throw new IllegalArgumentException(
-                    "Only draft or rejected announcements can be submitted."
-            );
-        }
-
+    if (request.approved()) {
         announcement.setStatus(
-                AnnouncementStatus.PENDING_APPROVAL
+                AnnouncementStatus.APPROVED
         );
-
-        return announcementRepository.save(announcement);
-    }
-
-    @Transactional
-    public Announcement reviewAnnouncement(
-            Long announcementId,
-            ReviewAnnouncementRequest request) {
-
-        Announcement announcement =
-                findById(announcementId);
-
-        User reviewer =
-                userService.findById(
-                        request.requestingUserId()
-                );
-
-        if (reviewer.getRole() != Role.ADMIN) {
-            throw new IllegalArgumentException(
-                    "Only admins may review announcements."
-            );
-        }
-
-        if (announcement.getStatus()
-                != AnnouncementStatus.PENDING_APPROVAL) {
-
-            throw new IllegalArgumentException(
-                    "Only pending announcements may be reviewed."
-            );
-        }
-
-        announcement.setReviewedBy(reviewer);
-        announcement.setReviewedAt(LocalDateTime.now());
-        announcement.setReviewNote(request.reviewNote());
-
-        if (request.approved()) {
-            announcement.setStatus(
-                    AnnouncementStatus.APPROVED
-            );
-        } else {
-            announcement.setStatus(
-                    AnnouncementStatus.REJECTED
-            );
-        }
-
-        return announcementRepository.save(announcement);
-    }
-
-    @Transactional
-    public Announcement publishAnnouncement(
-            Long announcementId,
-            Long requestingUserId) {
-
-        Announcement announcement =
-                findById(announcementId);
-
-        User requestingUser =
-                userService.findById(requestingUserId);
-
-        if (requestingUser.getRole() != Role.ADMIN) {
-            throw new IllegalArgumentException(
-                    "Only admins may publish announcements."
-            );
-        }
-
-        if (announcement.getStatus()
-                != AnnouncementStatus.APPROVED) {
-
-            throw new IllegalArgumentException(
-                    "Only approved announcements may be published."
-            );
-        }
-
+    } else {
         announcement.setStatus(
-                AnnouncementStatus.PUBLISHED
+                AnnouncementStatus.REJECTED
         );
-
-        announcement.setPublishedAt(
-                LocalDateTime.now()
-        );
-
-        return announcementRepository.save(announcement);
     }
+
+    return announcementRepository.save(announcement);
+}
+
+ @Transactional
+public Announcement publishAnnouncement(
+        Long announcementId,
+        String authenticatedEmail) {
+
+    Announcement announcement = findById(announcementId);
+
+    User requestingUser =
+            userService.findByEmailOrThrow(authenticatedEmail);
+
+    if (requestingUser.getRole() != Role.ADMIN) {
+        throw new IllegalArgumentException(
+                "Only admins may publish announcements."
+        );
+    }
+
+    if (announcement.getStatus()
+            != AnnouncementStatus.APPROVED) {
+
+        throw new IllegalArgumentException(
+                "Only approved announcements may be published."
+        );
+    }
+
+    announcement.setStatus(
+            AnnouncementStatus.PUBLISHED
+    );
+
+    announcement.setPublishedAt(
+            LocalDateTime.now()
+    );
+
+    return announcementRepository.save(announcement);
+}
 }

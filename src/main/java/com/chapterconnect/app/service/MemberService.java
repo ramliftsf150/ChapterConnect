@@ -1,5 +1,6 @@
 package com.chapterconnect.app.service;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,21 +15,27 @@ public class MemberService {
 
     private final UserService userService;
     private final MemberProfileService memberProfileService;
+    private final PasswordEncoder passwordEncoder;
 
     public MemberService(
             UserService userService,
-            MemberProfileService memberProfileService) {
+            MemberProfileService memberProfileService,
+            PasswordEncoder passwordEncoder) {
 
         this.userService = userService;
         this.memberProfileService = memberProfileService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     public MemberProfile createMember(CreateMemberRequest request) {
 
+        String passwordHash =
+                passwordEncoder.encode(request.password());
+
         User user = userService.createUser(
                 request.email(),
-                "TEMPORARY_HASH",
+                passwordHash,
                 request.role(),
                 AccountStatus.ACTIVE
         );

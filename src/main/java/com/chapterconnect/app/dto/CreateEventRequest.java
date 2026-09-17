@@ -23,10 +23,7 @@ public record CreateEventRequest(
         @NotNull
         LocalDateTime endDateTime,
 
-        String location,
-
-        @NotNull
-        Long createdByUserId
+        String location
 
 ) {
 }

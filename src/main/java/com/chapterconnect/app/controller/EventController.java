@@ -2,6 +2,7 @@ package com.chapterconnect.app.controller;
 
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,7 +10,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chapterconnect.app.dto.CreateEventRequest;
@@ -58,13 +58,17 @@ public class EventController {
     }
 
     @PostMapping
-    public EventResponse createEvent(
-            @Valid @RequestBody CreateEventRequest request) {
+public EventResponse createEvent(
+        @Valid @RequestBody CreateEventRequest request,
+        Authentication authentication) {
 
-        return toResponse(
-                eventService.createEvent(request)
-        );
-    }
+    Event event = eventService.createEvent(
+            request,
+            authentication.getName()
+    );
+
+    return toResponse(event);
+}
 
     private EventResponse toResponse(Event event) {
 
@@ -90,21 +94,26 @@ public class EventController {
     @PutMapping("/{id}")
 public EventResponse updateEvent(
         @PathVariable Long id,
-        @Valid @RequestBody UpdateEventRequest request) {
+        @Valid @RequestBody UpdateEventRequest request,
+        Authentication authentication) {
 
-    return toResponse(
-            eventService.updateEvent(id, request)
+    Event event = eventService.updateEvent(
+            id,
+            request,
+            authentication.getName()
     );
+
+    return toResponse(event);
 }
 
 @DeleteMapping("/{id}")
 public void deleteEvent(
         @PathVariable Long id,
-        @RequestParam Long requestingUserId) {
+        Authentication authentication) {
 
     eventService.deleteEvent(
             id,
-            requestingUserId
+            authentication.getName()
     );
 }
 

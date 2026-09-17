@@ -27,10 +27,7 @@ public record UpdateEventRequest(
         String location,
 
         @NotNull
-        EventStatus status,
-
-        @NotNull
-        Long requestingUserId
+        EventStatus status
 
 ) {
 }

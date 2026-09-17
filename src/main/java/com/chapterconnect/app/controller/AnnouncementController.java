@@ -2,13 +2,13 @@ package com.chapterconnect.app.controller;
 
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chapterconnect.app.dto.AnnouncementResponse;
@@ -31,14 +31,18 @@ public class AnnouncementController {
         this.announcementService = announcementService;
     }
 
-    @PostMapping
-    public AnnouncementResponse createAnnouncement(
-            @Valid @RequestBody CreateAnnouncementRequest request) {
+@PostMapping
+public AnnouncementResponse createAnnouncement(
+        @Valid @RequestBody CreateAnnouncementRequest request,
+        Authentication authentication) {
 
-        return toResponse(
-                announcementService.createAnnouncement(request)
-        );
-    }
+    return toResponse(
+            announcementService.createAnnouncement(
+                    request,
+                    authentication.getName()
+            )
+    );
+}
 
     @GetMapping("/published")
     public List<AnnouncementResponse> getPublishedAnnouncements() {
@@ -61,43 +65,45 @@ public class AnnouncementController {
     }
 
     @PutMapping("/{id}/submit")
-    public AnnouncementResponse submitAnnouncement(
-            @PathVariable Long id,
-            @RequestParam Long requestingUserId) {
+public AnnouncementResponse submitForApproval(
+        @PathVariable Long id,
+        Authentication authentication) {
 
-        return toResponse(
-                announcementService.submitForApproval(
-                        id,
-                        requestingUserId
-                )
-        );
-    }
+    return toResponse(
+            announcementService.submitForApproval(
+                    id,
+                    authentication.getName()
+            )
+    );
+}
 
-    @PutMapping("/{id}/review")
-    public AnnouncementResponse reviewAnnouncement(
-            @PathVariable Long id,
-            @Valid @RequestBody ReviewAnnouncementRequest request) {
+   @PutMapping("/{id}/review")
+public AnnouncementResponse reviewAnnouncement(
+        @PathVariable Long id,
+        @Valid @RequestBody ReviewAnnouncementRequest request,
+        Authentication authentication) {
 
-        return toResponse(
-                announcementService.reviewAnnouncement(
-                        id,
-                        request
-                )
-        );
-    }
+    return toResponse(
+            announcementService.reviewAnnouncement(
+                    id,
+                    request,
+                    authentication.getName()
+            )
+    );
+}
 
-    @PutMapping("/{id}/publish")
-    public AnnouncementResponse publishAnnouncement(
-            @PathVariable Long id,
-            @RequestParam Long requestingUserId) {
+   @PutMapping("/{id}/publish")
+public AnnouncementResponse publishAnnouncement(
+        @PathVariable Long id,
+        Authentication authentication) {
 
-        return toResponse(
-                announcementService.publishAnnouncement(
-                        id,
-                        requestingUserId
-                )
-        );
-    }
+    return toResponse(
+            announcementService.publishAnnouncement(
+                    id,
+                    authentication.getName()
+            )
+    );
+}
 
     private AnnouncementResponse toResponse(
             Announcement announcement) {

@@ -29,38 +29,38 @@ public class EventService {
         this.userService = userService;
     }
 
-    public Event createEvent(CreateEventRequest request) {
+    public Event createEvent(
+        CreateEventRequest request,
+        String authenticatedEmail) {
 
-        User creator =
-                userService.findById(request.createdByUserId());
+    User creator =
+            userService.findByEmailOrThrow(authenticatedEmail);
 
-        if (creator.getRole() == Role.BROTHER) {
-            throw new IllegalArgumentException(
-                    "Brothers are not allowed to create events."
-            );
-        }
-
-        if (request.endDateTime()
-                .isBefore(request.startDateTime())) {
-
-            throw new IllegalArgumentException(
-                    "Event end time cannot be before start time."
-            );
-        }
-
-        Event event = new Event(
-                request.title(),
-                request.description(),
-                request.eventType(),
-                request.startDateTime(),
-                request.endDateTime(),
-                request.location(),
-                creator,
-                EventStatus.SCHEDULED
+    if (creator.getRole() == Role.BROTHER) {
+        throw new IllegalArgumentException(
+                "Brothers are not allowed to create events."
         );
-
-        return eventRepository.save(event);
     }
+
+    if (request.endDateTime().isBefore(request.startDateTime())) {
+        throw new IllegalArgumentException(
+                "Event end time cannot be before start time."
+        );
+    }
+
+    Event event = new Event(
+            request.title(),
+            request.description(),
+            request.eventType(),
+            request.startDateTime(),
+            request.endDateTime(),
+            request.location(),
+            creator,
+            EventStatus.SCHEDULED
+    );
+
+    return eventRepository.save(event);
+}
 
     public List<Event> findAllEvents() {
         return eventRepository.findAll();
@@ -82,15 +82,16 @@ public class EventService {
                 );
     }
 
-    @Transactional
+  @Transactional
 public Event updateEvent(
         Long eventId,
-        UpdateEventRequest request) {
+        UpdateEventRequest request,
+        String authenticatedEmail) {
 
     Event event = findById(eventId);
 
     User requestingUser =
-            userService.findById(request.requestingUserId());
+            userService.findByEmailOrThrow(authenticatedEmail);
 
     if (requestingUser.getRole() == Role.BROTHER) {
         throw new IllegalArgumentException(
@@ -112,9 +113,7 @@ public Event updateEvent(
         );
     }
 
-    if (request.endDateTime()
-            .isBefore(request.startDateTime())) {
-
+    if (request.endDateTime().isBefore(request.startDateTime())) {
         throw new IllegalArgumentException(
                 "Event end time cannot be before start time."
         );
@@ -133,12 +132,12 @@ public Event updateEvent(
 
 public void deleteEvent(
         Long eventId,
-        Long requestingUserId) {
+        String authenticatedEmail) {
 
     Event event = findById(eventId);
 
     User requestingUser =
-            userService.findById(requestingUserId);
+            userService.findByEmailOrThrow(authenticatedEmail);
 
     if (requestingUser.getRole() != Role.ADMIN) {
         throw new IllegalArgumentException(
@@ -148,5 +147,4 @@ public void deleteEvent(
 
     eventRepository.delete(event);
 }
-
 }
